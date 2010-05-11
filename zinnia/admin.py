@@ -8,6 +8,9 @@ from django.utils.text import truncate_words
 from django.utils.translation import ugettext, ugettext_lazy as _
 from django.core.urlresolvers import reverse, NoReverseMatch
 
+from django.conf import settings
+from django.db import models
+
 from zinnia.models import Entry
 from zinnia.models import Category
 from zinnia.managers import PUBLISHED
@@ -19,16 +22,44 @@ from zinnia.settings import PING_DIRECTORIES
 from zinnia.settings import SAVE_PING_DIRECTORIES
 from zinnia.ping import DirectoryPinger
 
+zinnia_media_url = settings.ZINNIA_MEDIA_URL
+entry_admin_js = ['%sjs/jquery.js' % zinnia_media_url,
+    '%sjs/jquery.bgiframe.js' % zinnia_media_url,
+    '%sjs/jquery.autocomplete.js' % zinnia_media_url,
+    '%sjs/wymeditor/jquery.wymeditor.pack.js' % zinnia_media_url,
+]
+
+if 'tinymce' in settings.INSTALLED_APPS:
+    from tinymce.widgets import TinyMCE
+
+    if hasattr(settings, 'ZINNIA_TINYMCE_CONFIG'):
+        #use tinymce settings for zinnia
+        mce_attrs = settings.ZINNIA_TINYMCE_CONFIG
+    elif hasattr(settings, 'TINYMCE_DEFAULT_CONFIG'):
+        #or, if you're using django-cms, use those settings if you'd like
+        mce_attrs = settings.TINYMCE_DEFAULT_CONFIG
+    else:
+        mce_attrs = {}
+
+    entry_formfield_overrides = {
+        models.TextField: {'widget': TinyMCE(mce_attrs=mce_attrs)},
+    }
+else:
+    entry_admin_js.append('%sjs/init_wymeditor.js' % zinnia_media_url)
+    entry_formfield_overrides = {}
+
 
 class CategoryAdmin(admin.ModelAdmin):
     fields = ('title', 'slug', 'description')
     list_display = ('title', 'slug', 'description')
     list_filter = ('title', 'slug')
-    prepopulated_fields = {'slug': ('title', )}
+    prepopulated_fields = {'slug': ('title',)}
     search_fields = ('title', 'description')
 
 
 class EntryAdmin(admin.ModelAdmin):
+    #if you need additional formfield overrides, just update the entry_formfield_overrides dict
+    formfield_overrides = entry_formfield_overrides
     date_hierarchy = 'creation_date'
     fieldsets = ((_('Content'), {'fields': ('title', 'content', 'image', 'status')}),
                  (_('Options'), {'fields': ('authors', 'slug', 'excerpt', 'related',
@@ -43,12 +74,16 @@ class EntryAdmin(admin.ModelAdmin):
                     'get_is_actual', 'get_is_visible', 'get_link',
                     'get_short_url', 'creation_date', 'last_update')
     filter_horizontal = ('categories', 'authors', 'related')
-    prepopulated_fields = {'slug': ('title', )}
+    prepopulated_fields = {'slug': ('title',)}
     search_fields = ('title', 'excerpt', 'content', 'tags')
     actions = ['make_mine', 'make_published', 'make_hidden', 'close_comments',
                'ping_directories', 'make_tweet']
     actions_on_top = True
     actions_on_bottom = True
+
+    class Media:
+        zinnia_media_url = settings.ZINNIA_MEDIA_URL
+        js = tuple(entry_admin_js)
 
     # Custom Display
     def get_title(self, entry):
@@ -136,7 +171,7 @@ class EntryAdmin(admin.ModelAdmin):
         """Save the authors, update time, make an excerpt"""
         if not form.cleaned_data.get('excerpt'):
             entry.excerpt = truncate_words(strip_tags(entry.content), 50)
-        
+
         if entry.pk and not request.user.has_perm('zinnia.can_change_author'):
             form.cleaned_data['authors'] = entry.authors.all()
 
@@ -163,7 +198,7 @@ class EntryAdmin(admin.ModelAdmin):
                 kwargs['queryset'] = User.objects.filter(is_staff=True)
             else:
                 kwargs['queryset'] = User.objects.filter(pk=request.user.pk)
-        
+
         return super(EntryAdmin, self).formfield_for_manytomany(
             db_field, request, **kwargs)
 

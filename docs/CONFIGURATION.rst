@@ -70,3 +70,5 @@ ZINNIA_PLUGINS_TEMPLATES
 
   List of tuple for extending the cms's plugins rendering templates.
 
+ZINNIA_TINYMCE_CONFIG
+A settings dictionary for TinyMCE

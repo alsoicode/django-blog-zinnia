@@ -30,7 +30,7 @@ Main features :
   * Bit.ly support
   * Twitter support
   * Gravatar support
-  * WYMeditor support
+  * WYMeditor or TinyMCE
   * Django-cms plugins
   * Collaborative work
   * Tags autocompletion
@@ -43,6 +43,7 @@ Make sure to install these packages prior to installation :
 
  * akismet
  * django-tagging
+ * django-tinymce if you want to replace WYMEditor (http://code.google.com/p/django-tinymce/)
 
 Installation
 ============
@@ -72,6 +73,12 @@ Then register **zinnia**, and these following applications in the INSTALLED_APPS
   ...   'django.contrib.admin',
   ...   'tagging',
   ...   'zinnia',)
+
+
+TinyMCE
+---------------------------
+Follow the django-tinymce instructions at: http://django-tinymce.googlecode.com/svn/trunk/docs/.build/html/index.html
+
 
 Template Context Processors
 ---------------------------

@@ -15,3 +15,5 @@ develop-eggs
 .installed.cfg
 .sass-cache
 django_blog_zinnia.egg-info/
+.project
+.pydevproject
